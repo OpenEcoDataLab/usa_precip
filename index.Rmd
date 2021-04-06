@@ -1,0 +1,56 @@
+---
+title: "Airport precip locations"
+author: "Matthew Ross"
+date: "4/6/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+
+library(riem)
+library(sf)
+library(leaflet)
+library(mapview)
+
+```
+
+
+
+## Data acquisition
+
+```{r}
+network <- riem_networks()
+
+#View(network)
+
+co_riem <- riem_stations(network = 'CO_ASOS')
+
+#Projection is WGS 84 EPSG 4326
+co_spatial <- st_as_sf(co_riem, coords = c('lon','lat'), crs = 4326)
+
+```
+
+
+## Interactive map with leaflet
+
+
+```{r}
+
+m <- leaflet(co_spatial) %>%
+  addTiles() %>%  # Add default OpenStreetMap map tiles
+  addCircleMarkers()
+
+
+m
+```
+
+
+
+## Interactive map with mapview
+
+```{r}
+
+mapview(co_spatial)
+
+```
+
