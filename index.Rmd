@@ -11,10 +11,16 @@ library(riem)
 library(sf)
 library(leaflet)
 library(mapview)
+library(tidyverse)
+library(rayshader)
+library(USAboundaries)
+library(raster)
+library(elevatr)
 
 ```
 
 
+# 2D interactive map
 
 ## Data acquisition
 
@@ -41,7 +47,7 @@ m <- leaflet(co_spatial) %>%
   addCircleMarkers()
 
 
-m
+
 ```
 
 
@@ -53,4 +59,96 @@ m
 mapview(co_spatial)
 
 ```
+
+# 3D almost interactive map
+
+Rayshader and the rayverse generally are an amazing set of packages
+for 3D visualization in R made by Tyler Morgan-Wall. Details [here](https://www.rayshader.com/). 
+
+
+## Prepare data
+
+```{r, comment = F, message = F}
+co_equal_area <- co_spatial %>%
+  st_transform(2163) %>%
+  mutate(lat = st_coordinates(.)[,2],
+         long = st_coordinates(.)[,1])
+
+co_elev <- get_elev_raster(co_equal_area, z = 6) %>%
+  crop(., co_equal_area)
+
+
+
+```
+
+## Basic viz of Colorado
+
+```{r}
+co_mat <- raster_to_matrix(co_elev)
+
+co_mat %>%
+  sphere_shade(texture = 'desert') %>%
+  add_shadow(ray_shade(co_mat,zscale = 20)) %>%
+  plot_3d(co_mat, zscale = 60) 
+
+rgl::rgl.close()
+```
+
+
+## More contextualized colorado precip
+
+```{r}
+
+
+denver <- us_cities(states = 'CO') %>%
+  filter(city == 'Denver') %>%
+  st_transform(2163) %>%
+  mutate(lat = st_coordinates(.)[,2],
+         long = st_coordinates(.)[,1])
+
+co_mat %>%
+  sphere_shade(texture = 'desert') %>%
+  add_shadow(ray_shade(co_mat,zscale = 20)) %>%
+  plot_3d(co_mat, zscale = 60) 
+
+# Render label to identify denver
+
+render_label(co_mat,
+             text = 'Denver',
+             lat = denver$lat,
+             long = denver$long,
+             extent = attr(co_elev,'extent'),
+             zscale = 60)
+
+render_points(extent = attr(co_elev,'extent'),
+              lat = co_equal_area$lat,
+              long = co_equal_area$long,
+              heightmap = co_mat,
+              zscale = 60,
+              offset = 100,
+              color = 'blue',
+              size = 9
+              )
+
+rgl::rglwidget()
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
